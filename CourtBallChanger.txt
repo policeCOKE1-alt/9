@@ -1,14 +1,14 @@
 ----------------------------------------------------
--- Clientside Color Changer for Courts and Balls
+-- CLIENTSIDE COLOR CHANGER LOGIC
 ----------------------------------------------------
--- Global variables for colors (initial defaults)
+-- Global color variables (initial defaults)
 local colorChangerEnabled = false
 local newCourtColor = BrickColor.new("Lime green")
 local newBallColor = BrickColor.new("Bright red")
 local newBounceColor = BrickColor.new("Bright yellow")
 local newLandingColor = BrickColor.new("Bright orange")
 
--- Colors that should NOT be changed for courts
+-- Colors that should remain unchanged for courts
 local excludedColors = {
     ["Really black"] = true,
     ["Black"] = true,
@@ -19,19 +19,41 @@ local excludedColors = {
     ["Light stone grey"] = true,
 }
 
--- Function to update a court part's color (if it's not using an excluded color)
+-- When updating a court part, store its original color (if not already stored)
 local function updateCourtPartColor(part)
     if part:IsA("BasePart") then
-        if not excludedColors[part.BrickColor.Name] then
+        local currentColorName = part.BrickColor.Name
+        if not excludedColors[currentColorName] then
+            if not part:GetAttribute("OriginalCourtColor") then
+                part:SetAttribute("OriginalCourtColor", currentColorName)
+            end
             print("Updating court part:", part:GetFullName(), "to", newCourtColor.Name)
             part.BrickColor = newCourtColor
         else
-            print("Skipping court part:", part:GetFullName(), "with excluded color:", part.BrickColor.Name)
+            print("Skipping court part:", part:GetFullName(), "with excluded color:", currentColorName)
         end
     end
 end
 
--- Function to update ball parts and their effects
+-- Revert all court parts to their original color (if stored)
+local function revertCourtsToOriginal()
+    local courtsFolder = game.Workspace:FindFirstChild("Courts")
+    if courtsFolder then
+        for _, part in ipairs(courtsFolder:GetDescendants()) do
+            if part:IsA("BasePart") then
+                local orig = part:GetAttribute("OriginalCourtColor")
+                if orig then
+                    print("Reverting court part:", part:GetFullName(), "to", orig)
+                    part.BrickColor = BrickColor.new(orig)
+                    part:SetAttribute("OriginalCourtColor", nil)
+                end
+            end
+        end
+    else
+        warn("Courts folder not found in Workspace.")
+    end
+end
+
 local function updateBallObject(object)
     local lowerName = object.Name:lower()
     local parentLower = (object.Parent and object.Parent.Name:lower()) or ""
@@ -76,7 +98,6 @@ local function updateBallObject(object)
     end
 end
 
--- Functions to apply the colors to all existing parts
 local function applyColorsToCourts()
     local courtsFolder = game.Workspace:FindFirstChild("Courts")
     if courtsFolder then
@@ -119,7 +140,7 @@ local function applyColors()
     end
 end
 
--- Connect event listeners so that new parts are updated
+-- Listen for new parts so that they update automatically
 local courtsFolder = game.Workspace:FindFirstChild("Courts")
 if courtsFolder then
     courtsFolder.DescendantAdded:Connect(function(part)
@@ -150,9 +171,8 @@ if holderFolder then
 end
 
 ----------------------------------------------------
--- Global Functions for GUI Integration
+-- GLOBAL FUNCTIONS FOR GUI INTEGRATION (COLOR CHANGER)
 ----------------------------------------------------
--- When the user clicks "Apply" in the GUI, call this:
 _G.CourtBallColourChangerOn = function(courtColor, ballColor)
     print("[DEBUG] Applying Court Color:", courtColor, "and Ball Color:", ballColor)
     newCourtColor = BrickColor.new(courtColor)
@@ -161,22 +181,21 @@ _G.CourtBallColourChangerOn = function(courtColor, ballColor)
     applyColors()
 end
 
--- When the user clicks "Off" in the GUI:
 _G.CourtBallColourChangerOff = function()
     print("[DEBUG] Disabling Court/Ball Colour Changer")
     colorChangerEnabled = false
+    revertCourtsToOriginal()
 end
 
 ----------------------------------------------------
--- (Optional) For frequent updates, you can run a loop
+-- (The GUI portion remains as you provided)
 ----------------------------------------------------
---[[
-spawn(function()
-    while true do
-        if colorChangerEnabled then
-            applyColors()
-        end
-        wait(5)  -- update every 5 seconds (adjust as needed)
-    end
-end)
-]]
+-- [Insert your GUI code here that calls _G.CourtBallColourChangerOn and _G.CourtBallColourChangerOff]
+-- For example, when the user clicks the Apply button in your Court/Ball Colour Changer panel:
+--    local courtC = getCourtColor()  --> a function from your GUI that returns a Color3 value
+--    local ballC = getBallColor()    --> similar for ball
+--    _G.CourtBallColourChangerOn(courtC, ballC)
+-- And when Off is pressed, call:
+--    _G.CourtBallColourChangerOff()
+
+print("[DEBUG] Color changer script loaded.")
