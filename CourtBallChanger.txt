@@ -1,5 +1,5 @@
 ----------------------------------------------------
--- CLIENTSIDE COLOR CHANGER LOGIC
+-- CLIENTSIDE COLOR CHANGER LOGIC (REVISED)
 ----------------------------------------------------
 -- Global color variables (initial defaults)
 local colorChangerEnabled = false
@@ -19,13 +19,16 @@ local excludedColors = {
     ["Light stone grey"] = true,
 }
 
--- When updating a court part, store its original color (if not already stored)
+-- Global table to store original colors for court parts
+local originalCourtColors = {}
+
+-- Update a single court part; store its original color if not already stored
 local function updateCourtPartColor(part)
     if part:IsA("BasePart") then
         local currentColorName = part.BrickColor.Name
         if not excludedColors[currentColorName] then
-            if not part:GetAttribute("OriginalCourtColor") then
-                part:SetAttribute("OriginalCourtColor", currentColorName)
+            if not originalCourtColors[part] then
+                originalCourtColors[part] = part.BrickColor
             end
             print("Updating court part:", part:GetFullName(), "to", newCourtColor.Name)
             part.BrickColor = newCourtColor
@@ -37,21 +40,13 @@ end
 
 -- Revert all court parts to their original color (if stored)
 local function revertCourtsToOriginal()
-    local courtsFolder = game.Workspace:FindFirstChild("Courts")
-    if courtsFolder then
-        for _, part in ipairs(courtsFolder:GetDescendants()) do
-            if part:IsA("BasePart") then
-                local orig = part:GetAttribute("OriginalCourtColor")
-                if orig then
-                    print("Reverting court part:", part:GetFullName(), "to", orig)
-                    part.BrickColor = BrickColor.new(orig)
-                    part:SetAttribute("OriginalCourtColor", nil)
-                end
-            end
+    for part, origColor in pairs(originalCourtColors) do
+        if part and part.Parent then
+            print("Reverting court part:", part:GetFullName(), "to", origColor.Name)
+            part.BrickColor = origColor
         end
-    else
-        warn("Courts folder not found in Workspace.")
     end
+    originalCourtColors = {}  -- clear table for next time
 end
 
 local function updateBallObject(object)
@@ -140,7 +135,7 @@ local function applyColors()
     end
 end
 
--- Listen for new parts so that they update automatically
+-- Listen for new parts so they update automatically while the changer is enabled
 local courtsFolder = game.Workspace:FindFirstChild("Courts")
 if courtsFolder then
     courtsFolder.DescendantAdded:Connect(function(part)
@@ -186,16 +181,5 @@ _G.CourtBallColourChangerOff = function()
     colorChangerEnabled = false
     revertCourtsToOriginal()
 end
-
-----------------------------------------------------
--- (The GUI portion remains as you provided)
-----------------------------------------------------
--- [Insert your GUI code here that calls _G.CourtBallColourChangerOn and _G.CourtBallColourChangerOff]
--- For example, when the user clicks the Apply button in your Court/Ball Colour Changer panel:
---    local courtC = getCourtColor()  --> a function from your GUI that returns a Color3 value
---    local ballC = getBallColor()    --> similar for ball
---    _G.CourtBallColourChangerOn(courtC, ballC)
--- And when Off is pressed, call:
---    _G.CourtBallColourChangerOff()
 
 print("[DEBUG] Color changer script loaded.")
