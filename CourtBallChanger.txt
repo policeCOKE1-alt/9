@@ -1,0 +1,182 @@
+----------------------------------------------------
+-- Clientside Color Changer for Courts and Balls
+----------------------------------------------------
+-- Global variables for colors (initial defaults)
+local colorChangerEnabled = false
+local newCourtColor = BrickColor.new("Lime green")
+local newBallColor = BrickColor.new("Bright red")
+local newBounceColor = BrickColor.new("Bright yellow")
+local newLandingColor = BrickColor.new("Bright orange")
+
+-- Colors that should NOT be changed for courts
+local excludedColors = {
+    ["Really black"] = true,
+    ["Black"] = true,
+    ["Really white"] = true,
+    ["White"] = true,
+    ["Medium stone grey"] = true,
+    ["Dark stone grey"] = true,
+    ["Light stone grey"] = true,
+}
+
+-- Function to update a court part's color (if it's not using an excluded color)
+local function updateCourtPartColor(part)
+    if part:IsA("BasePart") then
+        if not excludedColors[part.BrickColor.Name] then
+            print("Updating court part:", part:GetFullName(), "to", newCourtColor.Name)
+            part.BrickColor = newCourtColor
+        else
+            print("Skipping court part:", part:GetFullName(), "with excluded color:", part.BrickColor.Name)
+        end
+    end
+end
+
+-- Function to update ball parts and their effects
+local function updateBallObject(object)
+    local lowerName = object.Name:lower()
+    local parentLower = (object.Parent and object.Parent.Name:lower()) or ""
+    local isBounce = lowerName:find("bounce") or parentLower:find("bounce")
+    local isLanding = lowerName:find("land") or parentLower:find("land")
+    
+    if object:IsA("BasePart") then
+        if isBounce then
+            print("Updating Bounce effect BasePart:", object:GetFullName(), "to", newBounceColor.Name)
+            object.BrickColor = newBounceColor
+        elseif isLanding then
+            print("Updating Landing effect BasePart:", object:GetFullName(), "to", newLandingColor.Name)
+            object.BrickColor = newLandingColor
+        else
+            print("Updating ball BasePart:", object:GetFullName(), "to", newBallColor.Name)
+            object.BrickColor = newBallColor
+        end
+    elseif object:IsA("Trail") then
+        if isBounce then
+            object.Color = ColorSequence.new(newBounceColor.Color)
+        elseif isLanding then
+            object.Color = ColorSequence.new(newLandingColor.Color)
+        else
+            object.Color = ColorSequence.new(newBallColor.Color)
+        end
+    elseif object:IsA("SelectionBox") then
+        if isBounce then
+            object.LineColor = newBounceColor.Color
+        elseif isLanding then
+            object.LineColor = newLandingColor.Color
+        else
+            object.LineColor = newBallColor.Color
+        end
+    elseif object:IsA("ParticleEmitter") then
+        if isBounce then
+            object.Color = ColorSequence.new(newBounceColor.Color)
+        elseif isLanding then
+            object.Color = ColorSequence.new(newLandingColor.Color)
+        else
+            object.Color = ColorSequence.new(newBallColor.Color)
+        end
+    end
+end
+
+-- Functions to apply the colors to all existing parts
+local function applyColorsToCourts()
+    local courtsFolder = game.Workspace:FindFirstChild("Courts")
+    if courtsFolder then
+        for _, part in ipairs(courtsFolder:GetDescendants()) do
+            updateCourtPartColor(part)
+        end
+    else
+        warn("Courts folder not found in Workspace.")
+    end
+end
+
+local function applyColorsToBalls()
+    local holderFolder = game.Workspace:FindFirstChild("Holder")
+    if holderFolder then
+        local ballsFolder = holderFolder:FindFirstChild("Balls")
+        local effectsFolder = holderFolder:FindFirstChild("Effects")
+        if ballsFolder then
+            for _, obj in ipairs(ballsFolder:GetDescendants()) do
+                updateBallObject(obj)
+            end
+        else
+            warn("Balls folder not found under Holder.")
+        end
+        if effectsFolder then
+            for _, obj in ipairs(effectsFolder:GetDescendants()) do
+                updateBallObject(obj)
+            end
+        else
+            warn("Effects folder not found under Holder.")
+        end
+    else
+        warn("Holder folder not found in Workspace.")
+    end
+end
+
+local function applyColors()
+    if colorChangerEnabled then
+        applyColorsToCourts()
+        applyColorsToBalls()
+    end
+end
+
+-- Connect event listeners so that new parts are updated
+local courtsFolder = game.Workspace:FindFirstChild("Courts")
+if courtsFolder then
+    courtsFolder.DescendantAdded:Connect(function(part)
+        if colorChangerEnabled then
+            updateCourtPartColor(part)
+        end
+    end)
+end
+
+local holderFolder = game.Workspace:FindFirstChild("Holder")
+if holderFolder then
+    local ballsFolder = holderFolder:FindFirstChild("Balls")
+    local effectsFolder = holderFolder:FindFirstChild("Effects")
+    if ballsFolder then
+        ballsFolder.DescendantAdded:Connect(function(obj)
+            if colorChangerEnabled then
+                updateBallObject(obj)
+            end
+        end)
+    end
+    if effectsFolder then
+        effectsFolder.DescendantAdded:Connect(function(obj)
+            if colorChangerEnabled then
+                updateBallObject(obj)
+            end
+        end)
+    end
+end
+
+----------------------------------------------------
+-- Global Functions for GUI Integration
+----------------------------------------------------
+-- When the user clicks "Apply" in the GUI, call this:
+_G.CourtBallColourChangerOn = function(courtColor, ballColor)
+    print("[DEBUG] Applying Court Color:", courtColor, "and Ball Color:", ballColor)
+    newCourtColor = BrickColor.new(courtColor)
+    newBallColor = BrickColor.new(ballColor)
+    colorChangerEnabled = true
+    applyColors()
+end
+
+-- When the user clicks "Off" in the GUI:
+_G.CourtBallColourChangerOff = function()
+    print("[DEBUG] Disabling Court/Ball Colour Changer")
+    colorChangerEnabled = false
+end
+
+----------------------------------------------------
+-- (Optional) For frequent updates, you can run a loop
+----------------------------------------------------
+--[[
+spawn(function()
+    while true do
+        if colorChangerEnabled then
+            applyColors()
+        end
+        wait(5)  -- update every 5 seconds (adjust as needed)
+    end
+end)
+]]
