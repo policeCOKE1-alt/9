@@ -30,10 +30,7 @@ local function updateCourtPartColor(part)
             if not originalCourtColors[part] then
                 originalCourtColors[part] = part.BrickColor
             end
-            print("Updating court part:", part:GetFullName(), "to", newCourtColor.Name)
             part.BrickColor = newCourtColor
-        else
-            print("Skipping court part:", part:GetFullName(), "with excluded color:", currentColorName)
         end
     end
 end
@@ -42,7 +39,6 @@ end
 local function revertCourtsToOriginal()
     for part, origColor in pairs(originalCourtColors) do
         if part and part.Parent then
-            print("Reverting court part:", part:GetFullName(), "to", origColor.Name)
             part.BrickColor = origColor
         end
     end
@@ -57,13 +53,10 @@ local function updateBallObject(object)
     
     if object:IsA("BasePart") then
         if isBounce then
-            print("Updating Bounce effect BasePart:", object:GetFullName(), "to", newBounceColor.Name)
             object.BrickColor = newBounceColor
         elseif isLanding then
-            print("Updating Landing effect BasePart:", object:GetFullName(), "to", newLandingColor.Name)
             object.BrickColor = newLandingColor
         else
-            print("Updating ball BasePart:", object:GetFullName(), "to", newBallColor.Name)
             object.BrickColor = newBallColor
         end
     elseif object:IsA("Trail") then
@@ -169,7 +162,6 @@ end
 -- GLOBAL FUNCTIONS FOR GUI INTEGRATION (COLOR CHANGER)
 ----------------------------------------------------
 _G.CourtBallColourChangerOn = function(courtColor, ballColor)
-    print("[DEBUG] Applying Court Color:", courtColor, "and Ball Color:", ballColor)
     newCourtColor = BrickColor.new(courtColor)
     newBallColor = BrickColor.new(ballColor)
     colorChangerEnabled = true
@@ -177,9 +169,6 @@ _G.CourtBallColourChangerOn = function(courtColor, ballColor)
 end
 
 _G.CourtBallColourChangerOff = function()
-    print("[DEBUG] Disabling Court/Ball Colour Changer")
     colorChangerEnabled = false
     revertCourtsToOriginal()
 end
-
-print("[DEBUG] Color changer script loaded.")
